@@ -1,5 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/services.dart';
 
 void main() {
   runApp(PortfolioApp());
@@ -73,13 +74,52 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-class HomePageContent extends StatelessWidget {
+class HomePageContent extends StatefulWidget {
+  @override
+  _HomePageContentState createState() => _HomePageContentState();
+}
+
+class _HomePageContentState extends State<HomePageContent> {
+  int _textIndex = 0;
+  List<String> _textOptions = [];
+
+  @override
+  void initState() {
+    super.initState();
+    loadTextOptions();
+  }
+
+  Future<void> loadTextOptions() async {
+    String jsonString = await rootBundle.loadString('assets/text_options.json');
+    final jsonMap = json.decode(jsonString);
+    setState(() {
+      _textOptions = List<String>.from(jsonMap['options']);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Text(
-        'Welcome to my Portfolio!',
-        style: TextStyle(fontSize: 24),
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _textIndex = (_textIndex + 1) % _textOptions.length;
+          });
+        },
+        child: AnimatedSwitcher(
+          duration: Duration(milliseconds: 500),
+          child: Text(
+            _textOptions[_textIndex],
+            key: ValueKey<String>(_textOptions[_textIndex]),
+            style: TextStyle(fontSize: 24),
+          ),
+          transitionBuilder: (Widget child, Animation<double> animation) {
+            return ScaleTransition(
+              scale: animation,
+              child: child,
+            );
+          },
+        ),
       ),
     );
   }
@@ -154,7 +194,16 @@ class ProjectsPageContent extends StatelessWidget {
             title: 'Project 1',
             description: 'Description of Project 1',
             onTap: () {
-              // Add functionality to navigate to specific project details page
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ProjectDetailsPage(
+                    imageUrl: 'assets/images/project1.jpg',
+                    title: 'Project 1',
+                    description: 'Description of Project 1',
+                  ),
+                ),
+              );
             },
           ),
           SizedBox(height: 16),
@@ -163,7 +212,16 @@ class ProjectsPageContent extends StatelessWidget {
             title: 'Project 2',
             description: 'Description of Project 2',
             onTap: () {
-              // Add functionality to navigate to specific project details page
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ProjectDetailsPage(
+                    imageUrl: 'assets/images/project2.jpg',
+                    title: 'Project 2',
+                    description: 'Description of Project 2',
+                  ),
+                ),
+              );
             },
           ),
         ],
@@ -223,6 +281,50 @@ class ProjectCard extends StatelessWidget {
                   ),
                 ],
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class ProjectDetailsPage extends StatelessWidget {
+  final String imageUrl;
+  final String title;
+  final String description;
+
+  const ProjectDetailsPage({
+    required this.imageUrl,
+    required this.title,
+    required this.description,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(title),
+      ),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Image.asset(
+              imageUrl,
+              height: 200,
+              fit: BoxFit.cover,
+            ),
+            SizedBox(height: 16),
+            Text(
+              title,
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Text(
+              description,
+              style: TextStyle(fontSize: 16),
             ),
           ],
         ),

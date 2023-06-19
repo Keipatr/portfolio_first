@@ -63,6 +63,8 @@ flutter:
     - assets/images/profile_image.jpg
     - assets/images/project1.jpg
     - assets/images/project2.jpg
+    - assets/images/project3.jpg
+    - assets/images/project4.jpg
     - assets/images/
     - assets/text_options.json
 

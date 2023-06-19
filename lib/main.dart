@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:async';
 
 void main() {
   runApp(PortfolioApp());
@@ -11,9 +12,9 @@ class PortfolioApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Portfolio Website',
+      title: 'Portfolio Flutter',
       theme: ThemeData(
-        primarySwatch: Colors.orange,
+        primarySwatch: Colors.green,
         appBarTheme: AppBarTheme(
           backgroundColor: Colors.white,
           iconTheme: IconThemeData(color: Colors.black),
@@ -42,12 +43,20 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Home'),
+        title: GestureDetector(
+          onTap: () {
+            Navigator.pop(context);
+          },
+          child: Text(
+            'My Portfolio',
+            style: TextStyle(color: Colors.black), // Set the text color to black
+          ),
+        ),
       ),
       body: _pages[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.orange,
+        selectedItemColor: Colors.green,
         unselectedItemColor: Colors.black,
         currentIndex: _currentIndex,
         items: const <BottomNavigationBarItem>[
@@ -79,7 +88,11 @@ class HomePageContent extends StatefulWidget {
   _HomePageContentState createState() => _HomePageContentState();
 }
 
-class _HomePageContentState extends State<HomePageContent> {
+class _HomePageContentState extends State<HomePageContent>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<Color?> _animation;
+  late Animation<Color?> _colorAnimation;
   int _textIndex = 0;
   List<String> _textOptions = [];
 
@@ -87,10 +100,34 @@ class _HomePageContentState extends State<HomePageContent> {
   void initState() {
     super.initState();
     loadTextOptions();
+    _animationController = AnimationController(
+      duration: Duration(seconds: 1),
+      vsync: this,
+    )..repeat(reverse: true);
+    _animation = ColorTween(begin: Colors.black, end: Colors.green)
+        .animate(_animationController);
+    _colorAnimation = ColorTween(begin: Colors.black, end: Colors.green)
+        .animate(_animationController);
+
+    // Start the timer to change the sentence every 3 seconds
+    Timer.periodic(Duration(seconds: 2), (Timer timer) {
+      if (_textOptions.isNotEmpty) {
+        setState(() {
+          _textIndex = (_textIndex + 1) % _textOptions.length;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   Future<void> loadTextOptions() async {
-    String jsonString = await rootBundle.loadString('assets/text_options.json');
+    String jsonString =
+        await rootBundle.loadString('assets/text_options.json');
     final jsonMap = json.decode(jsonString);
     setState(() {
       _textOptions = List<String>.from(jsonMap['options']);
@@ -100,26 +137,44 @@ class _HomePageContentState extends State<HomePageContent> {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            _textIndex = (_textIndex + 1) % _textOptions.length;
-          });
-        },
-        child: AnimatedSwitcher(
-          duration: Duration(milliseconds: 500),
-          child: Text(
-            _textOptions[_textIndex],
-            key: ValueKey<String>(_textOptions[_textIndex]),
-            style: TextStyle(fontSize: 24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'Welcome to My Portfolio',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
-          transitionBuilder: (Widget child, Animation<double> animation) {
-            return ScaleTransition(
-              scale: animation,
-              child: child,
-            );
-          },
-        ),
+          SizedBox(height: 16),
+          AnimatedSwitcher(
+            duration: Duration(milliseconds: 500),
+            child: _textOptions.isNotEmpty
+                ? RichText(
+                    key: ValueKey<String>(_textOptions[_textIndex]),
+                    text: TextSpan(
+                      style: TextStyle(fontSize: 24),
+                      children: _textOptions[_textIndex]
+                          .split("   ")
+                          .map((text) {
+                        if (text.trim().isEmpty) return TextSpan();
+                        return TextSpan(
+                          text: text,
+                          style: TextStyle(
+                            decoration: TextDecoration.underline,
+                            color: Colors.green,
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  )
+                : SizedBox(),
+            transitionBuilder: (Widget child, Animation<double> animation) {
+              return ScaleTransition(
+                scale: animation,
+                child: child,
+              );
+            },
+          ),
+        ],
       ),
     );
   }
@@ -143,13 +198,14 @@ class AboutPageContent extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 80,
-                backgroundImage: AssetImage('assets/images/profile_image.jpg'),
+                backgroundImage:
+                    AssetImage('assets/images/profile_image.jpg'),
               ),
             ],
           ),
           SizedBox(height: 16),
           Text(
-            'I am a passionate Flutter developer with experience in building mobile applications. I have a strong understanding of the Flutter framework and Dart programming language.',
+            "I'm a passionate Flutter developer with experience in building mobile applications. I have a strong understanding of the Flutter framework and Dart programming language.",
             style: TextStyle(fontSize: 18),
           ),
           SizedBox(height: 16),
@@ -163,8 +219,8 @@ class AboutPageContent extends StatelessWidget {
             runSpacing: 8,
             children: [
               SkillChip(label: 'Flutter'),
-              SkillChip(label: 'Dart'),
-              SkillChip(label: 'Firebase'),
+              SkillChip(label: 'C#'),
+              SkillChip(label: 'Laravel'),
               SkillChip(label: 'UI/UX Design'),
               SkillChip(label: 'Responsive Design'),
               SkillChip(label: 'Git'),
@@ -177,6 +233,29 @@ class AboutPageContent extends StatelessWidget {
 }
 
 class ProjectsPageContent extends StatelessWidget {
+  final List<Map<String, String>> projects = [
+    {
+      'imageUrl': 'assets/images/project1.jpg',
+      'title': 'Website Development',
+      'description': 'Tugas akhir mas',
+    },
+    {
+      'imageUrl': 'assets/images/project2.jpg',
+      'title': 'Application Development',
+      'description': 'Tugas akhir applicaiton development',
+    },
+    {
+      'imageUrl': 'assets/images/project3.jpg',
+      'title': 'Jual Pisang',
+      'description': 'HAHAHAHAHAAHHAHAHAHAHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+    },
+    {
+      'imageUrl': 'assets/images/project4.jpg',
+      'title': 'Jual Orang',
+      'description': 'Tugas NJ:ASND:OANDSO:jDANSK:JXANWJIDB:KSANXZJNJZKJCNOANDWNASDN',
+    },
+  ];
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -189,40 +268,26 @@ class ProjectsPageContent extends StatelessWidget {
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 16),
-          ProjectCard(
-            imageUrl: 'assets/images/project1.jpg',
-            title: 'Project 1',
-            description: 'Description of Project 1',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ProjectDetailsPage(
-                    imageUrl: 'assets/images/project1.jpg',
-                    title: 'Project 1',
-                    description: 'Description of Project 1',
-                  ),
-                ),
-              );
-            },
-          ),
-          SizedBox(height: 16),
-          ProjectCard(
-            imageUrl: 'assets/images/project2.jpg',
-            title: 'Project 2',
-            description: 'Description of Project 2',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ProjectDetailsPage(
-                    imageUrl: 'assets/images/project2.jpg',
-                    title: 'Project 2',
-                    description: 'Description of Project 2',
-                  ),
-                ),
-              );
-            },
+          Column(
+            children: projects
+                .map((project) => ProjectCard(
+                      imageUrl: project['imageUrl']!,
+                      title: project['title']!,
+                      description: project['description']!,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ProjectDetailsPage(
+                              imageUrl: project['imageUrl']!,
+                              title: project['title']!,
+                              description: project['description']!,
+                            ),
+                          ),
+                        );
+                      },
+                    ))
+                .toList(),
           ),
         ],
       ),
@@ -245,24 +310,24 @@ class ProjectCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: InkWell(
+        onTap: onTap,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              height: 200,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
-                image: DecorationImage(
-                  image: AssetImage(imageUrl),
-                  fit: BoxFit.cover,
-                ),
+            ClipRRect(
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(8),
+              ),
+              child: Image.asset(
+                imageUrl,
+                width: double.infinity,
+                fit: BoxFit.cover,
               ),
             ),
             Padding(
@@ -272,12 +337,15 @@ class ProjectCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  SizedBox(height: 8),
+                  SizedBox(height: 4),
                   Text(
                     description,
-                    style: TextStyle(fontSize: 16),
+                    style: TextStyle(fontSize: 14),
                   ),
                 ],
               ),
@@ -304,27 +372,33 @@ class ProjectDetailsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(title),
+        title: Text(
+          title,
+          style: TextStyle(color: Colors.black),
+        ),
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Image.asset(
-              imageUrl,
-              height: 200,
-              fit: BoxFit.cover,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                imageUrl,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
             ),
             SizedBox(height: 16),
             Text(
               title,
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 8),
+            SizedBox(height: 16),
             Text(
               description,
-              style: TextStyle(fontSize: 16),
+              style: TextStyle(fontSize: 18),
             ),
           ],
         ),
@@ -341,11 +415,9 @@ class SkillChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Chip(
-      label: Text(
-        label,
-        style: TextStyle(color: Colors.white),
-      ),
-      backgroundColor: Colors.orange,
+      label: Text(label),
+      backgroundColor: Colors.green,
+      labelStyle: TextStyle(color: Colors.white),
     );
   }
 }
